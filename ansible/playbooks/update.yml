@@ -1,0 +1,49 @@
+---
+- name: Update Web App
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop Docker containers
+      docker_container:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - frontend_container
+        - backend_container
+        - database_container
+      tags:
+        - docker
+
+    - name: Pull latest Docker images
+      docker_image:
+        name: "{{ item.image }}"
+        tag: "{{ item.tag }}"
+        pull: yes
+      loop:
+        - { image: "frontend_image", tag: "latest" }
+        - { image: "backend_image", tag: "latest" }
+        - { image: "database_image", tag: "latest" }
+      tags:
+        - docker
+
+    - name: Start Docker containers
+      docker_container:
+        name: "{{ item.name }}"
+        image: "{{ item.image }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ item.port }}:{{ item.container_port }}"
+      loop:
+        - { name: "frontend_container", image: "frontend_image", port: 80, container_port: 80 }
+        - { name: "backend_container", image: "backend_image", port: 8080, container_port: 8080 }
+        - { name: "database_container", image: "database_image", port: 3306, container_port: 3306 }
+      tags:
+        - docker
+
+  handlers:
+    - name: Restart Docker service
+      service:
+        name: docker
+        state: restarted
+

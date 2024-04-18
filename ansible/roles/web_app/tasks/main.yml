@@ -1,0 +1,66 @@
+---
+- name: Deploy Web App
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure Docker is installed
+      block:
+        - name: Install Docker dependencies
+          package:
+            name: "{{ item }}"
+            state: present
+          with_items:
+            - apt-transport-https
+            - ca-certificates
+            - curl
+            - gnupg
+            - lsb-release
+        - name: Add Docker GPG key
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+        - name: Add Docker repository
+          apt_repository:
+            repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+            state: present
+            update_cache: yes
+        - name: Install Docker
+          package:
+            name: docker-ce
+            state: present
+      tags:
+        - docker
+
+    - name: Pull Docker images
+      docker_image:
+        name: "{{ item.image }}"
+        tag: "{{ item.tag }}"
+        source: pull
+      loop:
+        - { image: "frontend_image", tag: "latest" }
+        - { image: "backend_image", tag: "latest" }
+        - { image: "database_image", tag: "latest" }
+      tags:
+        - docker
+
+    - name: Create Docker containers
+      docker_container:
+        name: "{{ item.name }}"
+        image: "{{ item.image }}:{{ item.tag }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ item.port }}:{{ item.container_port }}"
+      loop:
+        - { name: "frontend_container", image: "frontend_image", tag: "latest", port: 80, container_port: 80 }
+        - { name: "backend_container", image: "backend_image", tag: "latest", port: 8080, container_port: 8080 }
+        - { name: "database_container", image: "database_image", tag: "latest", port: 3306, container_port: 3306 }
+      tags:
+        - docker
+
+
+  handlers:
+    - name: Restart Docker service
+      service:
+        name: docker
+        state: restarted

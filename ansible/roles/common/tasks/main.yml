@@ -1,0 +1,22 @@
+---
+- name: Common Configuration
+  hosts: all
+  become: true
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == 'Debian'
+
+    - name: Install common packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - vim
+        - curl
+        - wget
+      when: ansible_os_family == 'Debian'
+
+

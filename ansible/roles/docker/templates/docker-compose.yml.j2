@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  frontend:
+    image: "{{ frontend_image }}"
+    ports:
+      - "80:80"
+    restart: always
+
+  backend:
+    image: "{{ backend_image }}"
+    ports:
+      - "8080:8080"
+    restart: always
+
+  database:
+    image: "{{ database_image }}"
+    ports:
+      - "3306:3306"
+    restart: always
+
